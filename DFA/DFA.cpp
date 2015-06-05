@@ -19,27 +19,14 @@ int main()
 	A.addState("F");
 	A.addFinal("C");
 	A.addFinal("F");
-	/*A.addRule("SaA");
-	A.addRule("SbD");
-	A.addRule("AbB");
 	A.addRule("AaA");
-	A.addRule("BaE");
-	A.addRule("BbC");
-	A.addRule("CaC");
-	A.addRule("CbE");
-	A.addRule("DaE");
-	A.addRule("DbF");
-	A.addRule("EaE");
-	A.addRule("EbE");
-	A.addRule("FaC");
-	A.addRule("FbE");*/
-	A.addRule("AaA");
-	A.addRule("BaB");
-	A.addRule("CaC");
+	A.addRule("SaA");
+	A.addRule("SbB");
+	A.addRule("BaC");
+	A.addRule("CbD");
 	A.addRule("DaD");
 	A.addRule("EaE");
-	A.makeMinimal();
-	cout<<A;
+	cout<<A.read("babba")<<endl;
 	system("pause");
 	return 0;
 }
