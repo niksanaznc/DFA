@@ -554,9 +554,6 @@ ostream& operator<<(ostream& os , DFA const& A)
 
 bool DFA::hasEmptyLanguage()
 {
-	/*for(int i = 0 ; i < finalStates ; i++)
-		if(strcmp(initial , final[i]) == 0)
-			return false;*/
 	for(int i = 0 ; i < finalStates ; i++)
 		if(regularExpression(*this , initial , final[i] , initial , 0 , 0))
 			return false;
@@ -656,9 +653,6 @@ void DFA::makeMinimal()
 		}
 		for(int k = 0 ; k < classes ; k++)
 		{
-				for(int j = 0 ; j < classesElements[k] ; j++)
-					cout<<k<<' '<<j<<' '<<equivalentClasses[k][j]<<' '<<B.deltaFunction(equivalentClasses[k][j] , alphabet[0])<<endl;//' '<<B.deltaFunction(equivalentClasses[k][j] , alphabet[1])<<endl;
-		cout<<"================   "<<i<<endl;
 			for(int p = 1 ; p < classesElements[k] ; p++)
 			{
 				for(int j = 0 ; j < B.getLetterCount() ; j++)
@@ -769,4 +763,4 @@ void DFA::makeMinimal()
 	}
 	delete[] classesElements;
 	*this = A;
-} // не напълно довършено
+}
