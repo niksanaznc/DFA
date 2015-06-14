@@ -1,9 +1,14 @@
 #include "stdafx.h"
 #include <iostream>
 #include "dfa.h"
+#include <string>
+#include <cstring>
 
 
 using namespace std;
+
+char** passedStates = new char*[30];
+bool nextLoop = false;
 
 DFA::DFA(char* I , char* _alphabet) : initial(NULL) , rules(NULL) , rulesCounter(0) , capacity(5) , alphabet(NULL)
 										, finalStates(0) , finalCap(1) , States(NULL) , final(NULL) , stateCap(2) , stateCounter(0)
@@ -150,13 +155,6 @@ void DFA::resizeFinal()
 	final = newFinals;
 }
 
-void DFA::printRules() const
-{
-	for(int i = 0 ; i < rulesCounter ; i++)
-		cout<<rules[i]<<' ';
-	cout<<endl;
-}
-
 void DFA::setInitial(char* I)
 {
 	removeState(initial);
@@ -275,69 +273,49 @@ void DFA::removeRule(char* rule)
 		}
 }
 
-void DFA::printFinalStates() const
-{
-	for(int i = 0 ; i < finalStates ; i++)
-		cout<<final[i]<<' ';
-	cout<<endl;
-}
-
-void DFA::printStates() const
-{
-	for(int i = 0 ; i < stateCounter ; i++)
-		cout<<States[i]<<' ';
-	cout<<endl;
-}
-
 DFA Union(DFA const& A , DFA const& B)
 {
-	DFA newAutomat("I");
-	for(int i = 0 ; i < A.getStatesCount() ; i++)
-		newAutomat.addState(A.getStates()[i]);
-	for(int i = 0 ; i < B.getStatesCount() ; i++)
-		newAutomat.addState(B.getStates()[i]);
-	for(int i = 0 ; i < A.getFinalCount() ; i++)
-		newAutomat.addFinal(A.getFinals()[i]);
-	for(int i = 0 ; i < B.getFinalCount() ; i++)
-		newAutomat.addFinal(B.getFinals()[i]);
-	for(int i = 0 ; i < A.getRulesCount() ; i++)
-		newAutomat.addRule(A.getRules()[i]);
-	for(int i = 0 ; i < B.getRulesCount() ; i++)
-		newAutomat.addRule(B.getRules()[i]);
-	for(int i = 0 ; i < newAutomat.getRulesCount() ; i++)
+	if(strcmp(A.alphabet , B.alphabet) == 0)
 	{
-		int k = strlen(A.getInitial());
-		if(strncmp(newAutomat.getRules()[i] , A.getInitial() , k) == 0 && isLetter(newAutomat.getRules()[i][k]))
-		{
-			int len = strlen(newAutomat.getRules()[i]) - strlen(A.getInitial());
-			char* rule1 = new char[len + strlen(newAutomat.getInitial())];
-			strcpy(rule1 , newAutomat.getInitial());
-			for(int p = 0 ; p < len; p++)
-				rule1[strlen(newAutomat.getInitial()) + p] = newAutomat.getRules()[i][p + k];
-			rule1[len + strlen(newAutomat.getInitial())] = '\0';
-			newAutomat.removeRule(newAutomat.getRules()[i]);
-			newAutomat.addRule(rule1);
-			delete[] rule1;
-		}
-		int z = strlen(A.getInitial());
-		if(strncmp(newAutomat.getRules()[i] , B.getInitial() , z) == 0 && isLetter(newAutomat.getRules()[i][z]))
-		{
-			int len2 = strlen(newAutomat.getRules()[i]) - strlen(B.getInitial());
-			char* rule1 = new char[len2 + strlen(newAutomat.getInitial())];
-			strcpy(rule1 , newAutomat.getInitial());
-			for(int p = 0 ; p < len2; p++)
-				rule1[strlen(newAutomat.getInitial()) + p] = newAutomat.getRules()[i][p + z];
-			rule1[len2 + strlen(newAutomat.getInitial())] = '\0';
-			newAutomat.removeRule(newAutomat.getRules()[i]);
-			newAutomat.addRule(rule1);
-			delete[] rule1;
-		}
+		DFA newAutomat("I" , A.alphabet);
+		for(int i = 0 ; i < A.getStatesCount() ; i++)
+			newAutomat.addState(A.getStates()[i]);
+		for(int i = 0 ; i < B.getStatesCount() ; i++)
+			newAutomat.addState(B.getStates()[i]);
+		for(int i = 0 ; i < A.getFinalCount() ; i++)
+			newAutomat.addFinal(A.getFinals()[i]);
+		for(int i = 0 ; i < B.getFinalCount() ; i++)
+			newAutomat.addFinal(B.getFinals()[i]);
+		for(int i = 0 ; i < A.getRulesCount() ; i++)
+			newAutomat.addRule(A.getRules()[i]);
+		for(int i = 0 ; i < B.getRulesCount() ; i++)
+			newAutomat.addRule(B.getRules()[i]);
+		if(A.isFinal(A.getInitial()) || B.isFinal(B.getInitial()))
+			newAutomat.addFinal(newAutomat.getInitial());
+		for(int i = 0 ; i < newAutomat.getRulesCount() ; i++)
+			if(strcmp(newAutomat.getLeftState(newAutomat.getRules()[i]) , A.getInitial()) == 0)
+				newAutomat.changeRulesLeftState(newAutomat.getRules()[i] , newAutomat.getInitial());
+		for(int i = 0 ; i < newAutomat.getRulesCount() ; i++)	
+			if(strcmp(newAutomat.getLeftState(newAutomat.getRules()[i]) , B.getInitial()) == 0)
+				newAutomat.changeRulesLeftState(newAutomat.getRules()[i] , newAutomat.getInitial());
+		for(int i = 0 ; i < newAutomat.getRulesCount() ; i++)
+			if(strcmp(newAutomat.getRightState(newAutomat.getRules()[i]) , A.getInitial()) == 0)
+				newAutomat.changeRulesRightState(newAutomat.getRules()[i] , newAutomat.getInitial());
+		for(int i = 0 ; i < newAutomat.getRulesCount() ; i++)
+			if(strcmp(newAutomat.getRightState(newAutomat.getRules()[i]) , B.getInitial()) == 0)
+				newAutomat.changeRulesRightState(newAutomat.getRules()[i] , newAutomat.getInitial());
+		if(strcmp(A.getInitial() , newAutomat.getInitial()) != 0)
+			newAutomat.removeState(A.getInitial());
+		if(strcmp(B.getInitial() , newAutomat.getInitial()) != 0)
+			newAutomat.removeState(B.getInitial());
+		return newAutomat;
 	}
-	if(strcmp(A.getInitial() , newAutomat.getInitial()) != 0)
-		newAutomat.removeState(A.getInitial());
-	if(strcmp(B.getInitial() , newAutomat.getInitial()) != 0)
-		newAutomat.removeState(B.getInitial());
-	return newAutomat;
+	else
+	{
+		cout<<"Cannot make union of automats with different alphabets!"<<endl;
+		return A;
+	}
+
 }
 
 bool isLetter(char c)
@@ -352,8 +330,9 @@ bool isLetter(char c)
 DFA DFA::getAddition() const
 {
 	DFA A = *this;
-	for(int i = 0 ; i < A.finalStates ; i++)
-		A.removeFinalState(A.getFinals()[i]);
+	for(int i = 0 ; i < A.stateCounter ; i++)
+		if(A.isFinal(A.getStates()[i]))
+			A.removeFinalState(A.getStates()[i]);
 	for(int i = 0 ; i < stateCounter ; i++)
 	{
 		if(!isFinal(States[i]))
@@ -370,7 +349,7 @@ DFA intersection(DFA const& A , DFA const& B)
 		strcpy(newInitial , A.getInitial());
 		strcat(newInitial , ",");
 		strcat(newInitial , B.getInitial());
-		DFA newDfa(newInitial);
+		DFA newDfa(newInitial , A.alphabet);
 
 		for(int i = 0 ; i < A.stateCounter ; i++)
 		{
@@ -385,10 +364,24 @@ DFA intersection(DFA const& A , DFA const& B)
 				if(A.isFinal(A.getStates()[i]) && B.isFinal(B.getStates()[j]))
 					newDfa.addFinal(state);
 
+				delete[] state;
+			}
+		}
+		delete[] newInitial;
+
+		for(int i = 0 ; i < A.stateCounter ; i++)
+		{
+			for(int j = 0 ; j < B.stateCounter ; j++)
+			{
+				char* state = new char[strlen(A.getStates()[i]) + strlen(B.getStates()[j]) + 2];
+				strcpy(state , A.getStates()[i]);
+				strcat(state , ",");
+				strcat(state , B.getStates()[j]);
+
 				for(int k = 0 ; k < A.getLetterCount() ; k++)
 				{
-					if(A.deltaFunction(A.getStates()[i] , A.alphabet[k]) != " " && A.deltaFunction(A.getStates()[i] , A.alphabet[k]) != "Err" 
-						&& B.deltaFunction(B.getStates()[j] , B.alphabet[k]) != " " && B.deltaFunction(B.getStates()[j] , B.alphabet[k]) != "Err" )
+					if(strcmp(A.deltaFunction(A.getStates()[i] , A.alphabet[k]) , " ") != 0 && strcmp(A.deltaFunction(A.getStates()[i] , A.alphabet[k]) , "ERR") != 0 
+						&& strcmp(B.deltaFunction(B.getStates()[j] , B.alphabet[k]) , " ") != 0 && strcmp(B.deltaFunction(B.getStates()[j] , B.alphabet[k]) , "ERR") != 0 )
 					{
 						char* rule = new char[strlen(A.deltaFunction(A.getStates()[i] , A.alphabet[k])) + strlen(state)
 													+ strlen(B.deltaFunction(B.getStates()[j] , B.alphabet[k])) + 3];
@@ -405,7 +398,6 @@ DFA intersection(DFA const& A , DFA const& B)
 				delete[] state;
 			}
 		}
-		delete[] newInitial;
 		return newDfa;
 	}
 	cout<<"Cannot intersect automats with different alphabets!"<<endl;
@@ -414,6 +406,7 @@ DFA intersection(DFA const& A , DFA const& B)
 
 void DFA::makeTotal()
 {
+	bool madeErr = false;
 	for(int i = 0 ; i < stateCounter ; i++)
 	{
 		int k = strlen(States[i]);
@@ -425,7 +418,12 @@ void DFA::makeTotal()
 				strcpy(rule , States[i]);
 				rule[k] = alphabet[j];
 				rule[k + 1] = '\0';
-				strcat(rule , "Err");
+				strcat(rule , "ERR");
+				if(!madeErr)
+				{
+					addState("ERR");
+					madeErr = true;
+				}
 				addRule(rule);
 				delete[] rule;
 			}
@@ -452,7 +450,7 @@ char* DFA::getRightState(char* rule) const
 	int i = strlen(rule) - strlen(getLeftState(rule));
 	char* state = new char[i];
 	for(int k = 0 ; k < i - 1; k++)
-		state[k] = rule[i + k];
+		state[k] = rule[strlen(rule) - i + k + 1];
 	state[i - 1] = '\0';
 	return state;
 }
@@ -511,23 +509,48 @@ bool DFA::isState(char* state) const
 	return false;
 }
 
-char* DFA::getRegularExpression(char* currentState , char* word , int count) const
+char* DFA::getRegularExpression(char* currentState , string word , int letter , int count)
 {
-	if(isFinal(currentState))
-	{
-		cout<<word<<endl;
-		count--;
-	}
-	for(int i = 0 ; i < getLetterCount() ; i++)
-	{
-		if(deltaFunction(currentState , alphabet[i]) != " " && deltaFunction(initial , alphabet[i]) != "Err")
+	if(hasEmptyLanguage())
+		return "EMPTY";
+	for(int i = letter ; i < getLetterCount() ; i++)
+		if(strcmp( deltaFunction(currentState , alphabet[i]) , " ") != 0)
 		{
-			word[count] = alphabet[i];
-			count++;
-			getRegularExpression(deltaFunction(currentState , alphabet[i]) , word , count);
+			bool passed = false;
+			for(int j = 0 ; j < count ; j++)
+				if(strcmp(passedStates[j] , deltaFunction(currentState , alphabet[i])) == 0)
+					passed = true;
+			if(!passed)
+			{
+				passedStates[count] = new char[strlen(currentState) + 1];
+				strcpy(passedStates[count++] , currentState );
+				if(strcmp(deltaFunction(currentState , alphabet[i]) , currentState) != 0)
+				{
+					word = word + alphabet[i];
+					return getRegularExpression(deltaFunction(currentState , alphabet[i]) , word , 0 , count);
+				}
+				else
+				{
+					if(isFinal(deltaFunction(currentState , alphabet[i])) && i < getLetterCount() - 1 && strcmp(deltaFunction(currentState , alphabet[i + 1]) , " ") != 0)
+						word = word + alphabet[i] + '*' + " U ";
+					else
+						word = word + alphabet[i] + '*';
+					return getRegularExpression(deltaFunction(currentState , alphabet[i]) , word , i + 1 , count);
+				}
+			}
+			else
+			{
+				if(isFinal(deltaFunction(currentState , alphabet[i])) && i < getLetterCount() - 1)
+					word = word + alphabet[i] + '*' + " U ";
+				else
+					word = word + alphabet[i] + '*';
+				return getRegularExpression(deltaFunction(currentState , alphabet[i]) , word , i + 1 , count);
+			}
 		}
-	}
-	return "not working yet!";
+		else
+			return getRegularExpression(currentState , word , i + 1 , count);
+	cout<<word<<endl;
+	return "";
 }
 
 ostream& operator<<(ostream& os , DFA const& A)
@@ -576,7 +599,7 @@ bool DFA::regularExpression(DFA A ,char* firstState , char* lastState , char* pr
 	{
 		if(strcmp(A.deltaFunction(firstState , alphabet[k]) , lastState) == 0)
 			return true;
-		if(strcmp(A.deltaFunction(firstState , alphabet[k]) , " ") != 0 && strcmp(A.deltaFunction(firstState , alphabet[k]) , "Err") != 0 &&
+		if(strcmp(A.deltaFunction(firstState , alphabet[k]) , " ") != 0 && strcmp(A.deltaFunction(firstState , alphabet[k]) , "ERR") != 0 &&
 			strcmp(A.deltaFunction(firstState , alphabet[k]) , firstState) != 0 && strcmp(A.deltaFunction(firstState , alphabet[k]) , previous) != 0)
 		{
 			for(int j = 0 ; j < A.getRulesCount() ; j++)
@@ -631,63 +654,58 @@ void DFA::makeMinimal()
 	{
 		classesElements[i] = 0;
 	}
-	DFA B = *this;
+
 	for(int i = 0 ; i < loop ; i++)
 	{
-		for(int br = 0 ; br < B.stateCounter ; br++)
-		{
-			for(int k = 0 ; k < B.rulesCounter ; k++)
-			{
-				for(int p = 0 ; p < classes ; p++)
-				{
-					for(int j = 1 ; j < classesElements[p] ; j++)
-					{
-						if(strcmp(B.getRightState(rules[k]) , equivalentClasses[p][j]) == 0)
-						{
-							B.changeRulesRightState(rules[k] , equivalentClasses[p][0]);
-							p = classes;
-						}
-					}
-				}
-			}
-		}
 		for(int k = 0 ; k < classes ; k++)
 		{
 			for(int p = 1 ; p < classesElements[k] ; p++)
 			{
-				for(int j = 0 ; j < B.getLetterCount() ; j++)
+				for(int j = 0 ; j < getLetterCount() ; j++)
 				{
-					if(classesElements[k] > 1 && strcmp(B.deltaFunction(equivalentClasses[k][p] , B.alphabet[j]) , B.deltaFunction(equivalentClasses[k][p-1] , B.alphabet[j])) != 0)
+					for(int r = 0 ; r < classes ; r++)
 					{
-						bool newClass = true;
-						for(int t = 0 ; t < classes ; t++)
+						if(classesElements[k] > 1 && belongsTo(deltaFunction(equivalentClasses[k][p-1] , alphabet[j]) , equivalentClasses[r] , classesElements[r]) 
+							&& !belongsTo(deltaFunction(equivalentClasses[k][p] , alphabet[j]) , equivalentClasses[r] , classesElements[r]))
 						{
-							bool found = true;
-							for(int w = 0 ; w < B.getLetterCount() ; w++)
-								if(strcmp(B.deltaFunction(equivalentClasses[k][p] , B.alphabet[w]) , B.deltaFunction(equivalentClasses[t][0] , B.alphabet[w])) != 0)
-									found = false;
-							if(found)
+							bool newClass = true;
+							for(int t = k + 1 ; t < classes ; t++)
 							{
-								equivalentClasses[t][classesElements[t]] = new char[strlen(equivalentClasses[k][p]) + 1];
-								strcpy(equivalentClasses[t][classesElements[t]] , (equivalentClasses[k][p]));
-								classesElements[t]++;
-								newClass = false;
-								t = classes;
+								bool found = true;
+								
+								for(int tt = 0 ; tt < classes ; tt++)
+								{
+									for(int w = 0 ; w < getLetterCount() ; w++)
+										if(belongsTo(deltaFunction(equivalentClasses[k][p] , alphabet[w]) , equivalentClasses[tt] , classesElements[tt]) &&
+											!belongsTo(deltaFunction(equivalentClasses[t][0] , alphabet[w]) , equivalentClasses[tt] , classesElements[tt]))
+											found = false;
+								}
+								
+								if(found)
+								{
+									equivalentClasses[t][classesElements[t]] = new char[strlen(equivalentClasses[k][p]) + 1];
+									strcpy(equivalentClasses[t][classesElements[t]] , (equivalentClasses[k][p]));
+									classesElements[t]++;
+									newClass = false;
+									t = classes;
+								}
 							}
+						
+							if(newClass)
+							{
+								equivalentClasses[classes] = new char*[loop];
+								equivalentClasses[classes][classesElements[classes]] = new char[strlen(equivalentClasses[k][p]) + 1];
+								strcpy(equivalentClasses[classes][classesElements[classes]] , equivalentClasses[k][p]);
+								classesElements[classes]++;
+								classes++;
+							}
+							delete[] equivalentClasses[k][p];
+							for(int z = p ; z < classesElements[k] - 1 ; z++)
+								equivalentClasses[k][z] = equivalentClasses[k][z + 1];
+							classesElements[k]--;
+							if(p > 1)
+								p--;
 						}
-						if(newClass)
-						{
-							equivalentClasses[classes] = new char*[loop];
-							equivalentClasses[classes][classesElements[classes]] = new char[strlen(equivalentClasses[k][p]) + 1];
-							strcpy(equivalentClasses[classes][classesElements[classes]] , equivalentClasses[k][p]);
-							classesElements[classes]++;
-							classes++;
-						}
-						delete[] equivalentClasses[k][p];
-						for(int z = p ; z < classesElements[k] - 1 ; z++)
-							equivalentClasses[k][z] = equivalentClasses[k][z + 1];
-						classesElements[k]--;
-						p--;
 					}
 				}
 			}
@@ -710,7 +728,7 @@ void DFA::makeMinimal()
 	{
 		for(int j = 0 ; j < getLetterCount() ; j++)
 		{
-			if(strcmp(deltaFunction(A.States[i] , alphabet[j]) , " ") != 0 && strcmp(deltaFunction(A.States[i] , alphabet[j]), "Err") != 0)
+			if(strcmp(deltaFunction(A.States[i] , alphabet[j]) , " ") != 0)
 			{
 				if(A.isState(deltaFunction(A.States[i] , alphabet[j])))
 				{
@@ -763,4 +781,14 @@ void DFA::makeMinimal()
 	}
 	delete[] classesElements;
 	*this = A;
+} 
+
+bool belongsTo(char* state , char** classes , int count)
+{
+	for(int i = 0 ; i < count ; i++)
+		if(strcmp(state , classes[i]) == 0)
+			return true;
+	return false;
 }
+
+
